@@ -1,6 +1,6 @@
 
 """Hello World!"""
-
+import GRtmp as GR
 
 # 실행 queue를 하나 만들고
 # 방을 만드는 동시에 dictionary로 각 id를 방, 사람으로 연결짓는다.
@@ -79,8 +79,16 @@ class Server:
 
     def user_to_server(self, cmd):
         user_id, turn, isReady = cmd
-        if turn == 0 and isReady == True:
+        if turn == 0 and isReady:
             self.queue_user_game_start(user_id)
-        elif turn == 0 and isReady == False:
-            self.cancel
+        elif turn == 0 and isReady:
+            self.cancel_queue_user_game_start(user_id)
+        else:
+            self.server_to_GR(user_id, turn);
 
+    def user_to_GR(self, cmd):
+        pass
+
+
+if __name__ == '__main__':
+    print("Hello")
