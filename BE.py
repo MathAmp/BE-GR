@@ -5,13 +5,14 @@ import GRtmp as GR
 # 실행 queue를 하나 만들고
 # 방을 만드는 동시에 dictionary로 각 id를 방, 사람으로 연결짓는다.
 
+
 class Room:
     def __init__(self):
         self.state = list()
 
-
     def user_turn(self, number, data):
         self.state[number] = data
+
 
 class Server:
     def __init__(self):
@@ -19,9 +20,10 @@ class Server:
         self.game_start_queue = list()  # Game start한다
         self.id_to_room_and_number = dict()  # id를 room, number pair 로 바꾼다
         self.room_to_id = dict()
-            # user_to_server와 AI_to_server
+        # user_to_server와 AI_to_server
 
-    def queue_user_game_start(self, user_id): #이거는 FE에서 game start queue 신호가 들어오면 다 넣는다
+    # 이거는 FE에서 game start queue 신호가 들어오면 다 넣는다
+    def queue_user_game_start(self, user_id):
         """If there's no repeated id, append new id in id list"""
         if user_id in self.game_start_queue:
             return False
@@ -49,7 +51,8 @@ class Server:
             player_list = list()
             for _ in range(5):
                 i_id = self.game_start_queue.pop(0)
-                self.id_to_room_and_number[i_id] = (new_room, n) #이거 dictionary이다
+                self.id_to_room_and_number[i_id] = (
+                    new_room, n)  # 이거 dictionary이다
                 player_list.append(i_id)
                 n += 1
             self.room_to_id[new_room] = player_list
@@ -64,9 +67,9 @@ class Server:
         room.user_turn(player, data_from_fe)
         # 이후 게임 로직 불러오는 함수
 
-    #어찌됐든 room의 상태는 GR에서 가지고 있다
+    # 어찌됐든 room의 상태는 GR에서 가지고 있다
 
-    #GR과 user는 서버에 어떻게 정보를 보낼까?
+    # GR과 user는 서버에 어떻게 정보를 보낼까?
 
     def server_to_user(self, room_and_number, cmd):
         """Send cmd to user"""
@@ -84,7 +87,7 @@ class Server:
         elif turn == 0 and isReady:
             self.cancel_queue_user_game_start(user_id)
         else:
-            self.server_to_GR(user_id, turn);
+            self.server_to_GR(user_id, turn)
 
     def user_to_GR(self, cmd):
         pass
