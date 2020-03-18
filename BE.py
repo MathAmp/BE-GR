@@ -20,19 +20,12 @@ class Server:
         self.task_queue = list()  # task(front에서 넘어온 일들)를 저장한다
         self.game_start_queue = deque()  # Game start를 신청한 사람들 모아둠
         self.id_to_room_and_number = dict()  # id를 room, number pair 로 바꾼다
-<<<<<<< HEAD
-        self.room_to_ids = dict()   # room에 들어있는 id를 list로 출력. room -> id list.user_to_server와 AI_to_server
-
-    def queue_user_game_start(self, user_id): #이거는 FE에서 game start queue 신호가 들어오면 다 넣는다
-        """If id is not repeated, append new id in id list"""
-=======
-        self.room_to_id = dict()
-        # user_to_server와 AI_to_server
+        # room에 들어있는 id를 list로 출력. room -> id list.user_to_server와 AI_to_server
+        self.room_to_ids = dict()
 
     # 이거는 FE에서 game start queue 신호가 들어오면 다 넣는다
     def queue_user_game_start(self, user_id):
-        """If there's no repeated id, append new id in id list"""
->>>>>>> 2eb9d224f356ba34c08cbeb069b03d3366d0bf1c
+        """If id is not repeated, append new id in id list"""
         if user_id in self.game_start_queue:
             return False
         else:
@@ -58,7 +51,8 @@ class Server:
             player_list = list()
             for _ in range(5):
                 i_id = self.game_start_queue.popleft()
-                self.id_to_room_and_number[i_id] = (new_room, n) #이거 dictionary이다
+                self.id_to_room_and_number[i_id] = (
+                    new_room, n)  # 이거 dictionary이다
                 player_list.append(i_id)
                 n += 1
             self.room_to_ids[new_room] = player_list
@@ -72,14 +66,14 @@ class Server:
 
     # 어찌됐든 room의 상태는 GR에서 가지고 있다
 
-    #GR과 user는 서버에 어떻게 정보를 보낼까? 그냥 cmd로 퉁쳐 놓자
+    # GR과 user는 서버에 어떻게 정보를 보낼까? 그냥 cmd로 퉁쳐 놓자
 
     def server_to_user(self, room_and_number, cmd):
         """Send cmd to user"""
         "게임이 시작됐다는 시그널, 대기 시그널 처리 완료(올리기, 취소하기)했다는 시그널, UI"
         room, number = room_and_number
         user_id = self.room_to_ids[room][number]
-        self.to_front_end(user_id, cmd)
+        Server.to_front_end(user_id, cmd)
 
     @staticmethod
     def to_front_end(user_id, cmd):
@@ -87,18 +81,19 @@ class Server:
 
     def server_to_GR(self, user_id, cmd):
         """Send cmd to GR"""
+        # 이거 내가 호출하지는 않고, user_to_server가 알아서 해줄거야. 나는 task_queue만 잘 처리하면 돼
         room, number = self.id_to_room_and_number[user_id]
-        room.turn_process(number, cmd)
+        room.turn_process(number, cmd)  # 이거 리턴값을 어떻게 할까요?
 
     def user_to_server(self, cmd):
         "대기 시그널(올리기, 취소하기)"
-        user_id, is_ready, turn = cmd
-        if turn == 0 and is_ready:
+        user_id, is_ready, cmd_rest = cmd
+        if cmd_rest == 0 and is_ready:
             self.queue_user_game_start(user_id)
-        elif turn == 0 and not is_ready:
+        elif cmd_rest == 0 and not is_ready:
             self.cancel_queue_user_game_start(user_id)
         else:
-            self.server_to_GR(user_id, turn)
+            self.server_to_GR(user_id, cmd_rest)
 
     def GR_to_server(self, cmd):
         "게임 종료 신호, AI차례인지, UI. 처음 두개가 내가 처리해야할것들"
@@ -107,3 +102,6 @@ class Server:
 
 if __name__ == '__main__':
     print("Hello World!")
+    server1 = Server()
+    while True:
+        # 루프 만들기
