@@ -1,31 +1,96 @@
-
-"""Hello World!"""
-import GRtmp as GR
+from typing import List, Deque, Dict
 from collections import deque
+
+import GRtmp as GR
+from queue import WaitingQueue
+
 
 # 실행 queue를 하나 만들고
 # 방을 만드는 동시에 dictionary로 각 id를 방, 사람으로 연결짓는다.
 
 
+class Player:
+
+    def __init__(self, player_id: int):
+        self.player_id: int = player_id
+
+
 class Room:
-    def __init__(self):
+
+    regular_personnel = 5
+
+    def __init__(self, player_id_list: List[int]):
         self.state = list()
+        self.player_id_list: List[int] = player_id_list
+        self.player_sequence_dict = dict()
 
     def user_turn(self, number, data):
         self.state[number] = data
 
 
+class MyServer:
+
+    def __init__(self):
+        self.task_queue: Deque = deque()
+        self.waiting_queue: WaitingQueue = WaitingQueue()
+        self.room_dict: Dict[int, Room] = dict()
+
+    def enqueue_task(self) -> bool:
+        cmd = self.front_end_to_back_end()
+        self.task_queue.append(cmd)
+        return True
+
+    def enqueue_waiting(self, player_id: int) -> bool:
+        if player_id not in self.room_dict:
+            return self.waiting_queue.wait(player_id)
+        else:
+            return False
+
+    def cancel_waiting(self, player_id: int) -> bool:
+        return self.waiting_queue.cancel_wait(player_id)
+
+    def init_room(self) -> List[Room]:
+        """
+        Create rooms as many as possible
+        """
+        init_room_list = list()
+        while True:
+            player_id_list = self.waiting_queue.pop_players(Room.regular_personnel)
+            if player_id_list:
+                init_room_list.append(self.create_room(player_id_list))
+            else:
+                break
+        return init_room_list
+
+    def create_room(self, player_id_list: List[int]) -> Room:
+        """
+        Create Single room
+        """
+        new_room = Room(player_id_list)
+        self.room_dict.update({player_id: new_room for player_id in player_id_list})
+        return new_room
+
+    @classmethod
+    def front_end_to_back_end(cls):
+        raise NotImplementedError
+
+    @classmethod
+    def back_end_to_front_end(cls):
+        raise NotImplementedError
+
+
 class Server:
+
     def __init__(self):
         self.task_queue = list()  # task(front에서 넘어온 일들)를 저장한다
-        self.game_start_queue = deque()  # Game start를 신청한 사람들 모아둠
+        self.game_start_queue: Deque = deque()  # Game start를 신청한 사람들 모아둠
         self.id_to_room_and_number = dict()  # id를 room, number pair 로 바꾼다
         # room에 들어있는 id를 list로 출력. room -> id list.user_to_server와 AI_to_server
         self.room_to_ids = dict()
         self.room_to_user_num = dict()
 
     def task_queue_maker(self):
-        #! Loop 만들기
+        # ! Loop 만들기
         cmd = Server.from_front_end()
         self.task_queue.append(cmd)
 
@@ -106,7 +171,7 @@ class Server:
 
         player_index = self.room_to_ids[room].index(user_id)
         if player_index >= self.room_to_user_num[room]:
-            #! AI call
+            # ! AI call
             raise NotImplementedError
 
         self.server_to_user((room, player), ui_info)
