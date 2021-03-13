@@ -10,9 +10,9 @@ class WaitingQueue(deque):
     def is_able_to_start(self, num: int) -> bool:
         return len(self) >= num
 
-    def wait(self, player_id: int) -> bool:
-        if player_id not in self:
-            self.append(player_id)
+    def wait(self, account_id: int) -> bool:
+        if account_id not in self:
+            self.append(account_id)
             return True
         else:
             return False
