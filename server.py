@@ -1,4 +1,4 @@
-from typing import List, Deque, Dict, AnyStr, Tuple, Union
+from typing import List, Deque, Dict, AnyStr, Tuple, Union, Optional
 from collections import deque, namedtuple
 from enum import auto, Enum
 import json
@@ -22,6 +22,33 @@ class CallType(Enum):
     GAME_OVER = auto()
 
 
+class Card:
+
+    @classmethod
+    def str_to_card(cls, card_str: str):
+        pass
+
+    @staticmethod
+    def is_cardstr(card_str: str) -> bool:
+        pass
+
+
+class Suit:
+
+    @classmethod
+    def str_to_suit(cls, suit_str: str):
+        pass
+
+    @staticmethod
+    def is_suitstr(suit_str: str) -> bool:
+        pass
+
+
+class FriendCall:
+
+    def __init__(self, fctype: int, card: Optional[Card] = None):
+        pass
+
 class Perspective:
     pass
 
@@ -37,7 +64,7 @@ class Engine:
     def get_next_call(self) -> CallType:
         return CallType.FRIEND_CALL
 
-    def bidding(self, bidder: int, trump: int, bid: int) -> int:
+    def bidding(self, bidder: int, trump: Suit, bid: int) -> int:
         """
         suit
         bid
@@ -50,7 +77,7 @@ class Engine:
         """
         raise NotImplementedError
 
-    def trump_change(self, trump: int) -> int:
+    def trump_change(self, trump: Suit) -> int:
         """
         suit
         """
@@ -62,7 +89,7 @@ class Engine:
         """
         raise NotImplementedError
 
-    def friend_call(self, friend_call: int) -> int:
+    def friend_call(self, friend_call: FriendCall) -> int:
         """
         fctype
         card
@@ -97,7 +124,7 @@ class Room:
         elif current_call_type == CallType.TRUMP_CHANGE:
             self._trump_change(self.game_engine, data)
         elif current_call_type == CallType.MISS_DEAL_CHECK:
-            self._miss_deal_check(self.game_engine, data)
+            self._miss_deal_check(self.game_engine, player_id, data)
         elif current_call_type == CallType.FRIEND_CALL:
             self._friend_call(self.game_engine, data)
         elif current_call_type == CallType.PLAY:
@@ -107,35 +134,54 @@ class Room:
 
     @staticmethod
     def _bidding(engine: Engine, player_id: int, data: dict) -> Union[RoomProcessResult, None]:
-        if 'suit' in data and 'bid' in data:
-            return_value = engine.bidding(player_id, )
+        if 'suit' in data and 'bid' in data and Suit.is_suitstr(data['suit']):
+            trump = Suit.str_to_suit(data['suit'])
+            bid = data['bid']
+            return_value = engine.bidding(player_id, trump, bid)
             return RoomProcessResult(CallType.BID, return_value)
 
     @staticmethod
-    def _exchange(engine: Engine, data: dict) -> RoomProcessResult:
-        if 'card_list' in data:
-            card_list = []
-            return_value = engine.exchange()
-            pass
+    def _exchange(engine: Engine, data: dict) -> Union[RoomProcessResult, None]:
+        if 'card_list' in data and all(Card.is_cardstr(card) for card in data['card_list']):
+            card_list = [Card.str_to_card(card) for card in data['card_list']]
+            return_value = engine.exchange(card_list)
+            return RoomProcessResult(CallType.EXCHANGE, return_value)
 
     @staticmethod
-    def _trump_change(engine: Engine, data: dict) -> RoomProcessResult:
-        pass
+    def _trump_change(engine: Engine, data: dict) -> Union[RoomProcessResult, None]:
+        if 'suit' in data and Suit.is_suitstr(data['suit']):
+            trump = Suit.str_to_suit(data['suit'])
+            return_value = engine.trump_change(trump)
+            return RoomProcessResult(CallType.TRUMP_CHANGE, return_value)
 
     @staticmethod
-    def _miss_deal_check(engine: Engine, data: dict) -> RoomProcessResult:
-        pass
+    def _miss_deal_check(engine: Engine, player_id: int, data: dict) -> Union[RoomProcessResult, None]:
+        if 'miss_deal' in data:
+            miss_deal = data['miss_deal']
+            return_value = engine.miss_deal_check(player_id, miss_deal)
+            return RoomProcessResult(CallType.MISS_DEAL_CHECK, return_value)
 
     @staticmethod
-    def _friend_call(engine: Engine, data: dict) -> RoomProcessResult:
-        raise NotImplementedError
+    def _friend_call(engine: Engine, data: dict) -> Union[RoomProcessResult, None]:
+        if 'fctype' in data and 'card' in data and Card.is_cardstr(data['card']):
+            fctype = data['fctype']
+            card = Card.str_to_card(data['card'])
+            friend_call = FriendCall(fctype, card)
+            return_value = engine.friend_call(friend_call)
+            return RoomProcessResult(CallType.FRIEND_CALL, return_value)
+
+    @classmethod
+    def _play(cls, engine: Engine, data: dict) -> Union[RoomProcessResult, None]:
+        if 'player_id' in data and cls.is_valid_player_id(data['player_id'], cls.regular_personnel):
+            player_id = data['player_id']
+            # How can determine play instance?
 
     @staticmethod
-    def _play(engine: Engine, data: dict) -> Union[RoomProcessResult, None]:
-        raise NotImplementedError
+    def is_valid_player_id(player_id: int, total_id_cnt: int) -> bool:
+        return 0 <= player_id < total_id_cnt
 
     def _player_id_to_account_id(self, player_id: int) -> Union[int, None]:
-        if 0 <= player_id <= len(self.account_id_tuple):
+        if self.is_valid_player_id(player_id, len(self.account_id_tuple)):
             return self.account_id_tuple[player_id]
 
     def _account_id_to_player_id(self, account_id: int) -> Union[int, None]:
